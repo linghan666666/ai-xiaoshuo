@@ -36,7 +36,8 @@ $('#modal-ok').addEventListener('click', () => closeModal($('#modal-input').styl
 $('#modal-cancel').addEventListener('click', () => closeModal(false));
 
 /* ---------------- 页签 ---------------- */
-function goTab(name) {
+function goTab(name, keepHash) {
+  if (!keepHash) { try { history.replaceState(null, '', '#' + name); } catch (e) { /* file:// 下可能失败 */ } }
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${name}`));
   if (name === 'kb') kbLoad();
@@ -1153,6 +1154,9 @@ $('#step-model').addEventListener('change', async () => {
     await loadBooks();
     await kbLoad();
   } catch (e) { await alertBox('初始化失败：' + e.message); }
+  // 支持用 URL 直接打开某个页签（#short / #kb / #chapters …），便于分享与截图
+  const want = (location.hash || '').replace('#', '');
+  if (want && document.querySelector('.tab[data-tab="' + want + '"]')) goTab(want, true);
 })();
 
 

@@ -1,5 +1,10 @@
 # ai-xiaoshuo · 番茄小说 AI 写作平台
 
+[![ci](https://github.com/linghan666666/ai-xiaoshuo/actions/workflows/ci.yml/badge.svg)](https://github.com/linghan666666/ai-xiaoshuo/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg)](https://www.python.org/)
+[![fastapi](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
+
 **以 `ai-xiaoshuo-skill` 为核心的自托管写作平台：手册就是平台本身。**
 
 不是"又一堆可编排节点"——手册（skill）的**工作流**是平台的流程，
@@ -7,6 +12,10 @@
 
 > 技术栈：FastAPI + SQLite（WAL）+ 原生前端，无构建步骤，单机运行，端口 **8788**。
 > 模型走任意 OpenAI 兼容网关（也可用"网页版人工通道"零 API 运行）。
+
+| 短故事 · 一键成篇 | 知识库（15 模块 145 节） | 合规检查 |
+|---|---|---|
+| ![](docs/screenshots/short-story.png) | ![](docs/screenshots/knowledge-base.png) | ![](docs/screenshots/compliance-check.png) |
 
 ---
 
