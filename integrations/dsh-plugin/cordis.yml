@@ -1,0 +1,7 @@
+# DSH 挂载覆盖层（patch）：把 novel-platform 插件插进 DeepSeek Harness
+# 用法：在 deepseek-harness 仓库根目录执行
+#   pnpm dsh web --patch "<项目绝对路径>/integrations/dsh-plugin/cordis.yml"
+# 注意：name 必须是【绝对路径】（官方要求）。换机器/换目录时改这一行即可。
+- insert:
+    - id: novel-platform
+      name: 'file:///<项目绝对路径>/integrations/dsh-plugin/novel-platform.mjs'

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ai-xiaoshuo · 番茄 AI 写作平台</title>
+<link rel="stylesheet" href="/styles.css?v=26" />
+</head>
+<body>
+<header>
+  <h1>🧭 ai-xiaoshuo <span class="hint">以 ai-xiaoshuo-skill 为核心</span></h1>
+  <nav class="tabs">
+    <button class="tab active" data-tab="flow" title="按 skill 的工作流一步步走：选题→合规→书名简介→人设→大纲→黄金三章→章节→去AI味→投稿自查。每一步都把手册原文指令摆在你面前。">写作流程</button>
+    <button class="tab" data-tab="short" title="番茄短故事：分类/试读比例/是否使用 AI，一键建 5 章骨架、逐章生成、合并预览、导出可直接粘贴的正文（≥6000 字即有机会签约）。">短故事</button>
+    <button class="tab" data-tab="chapters" title="章节正文：新建、生成、改写、查看、导出成 txt/md。">章节</button>
+    <button class="tab" data-tab="checks" title="黑名单预检 / 违禁词与 AI 痕迹扫描 / 投稿前自查清单（全部来自手册原文）。">合规检查</button>
+    <button class="tab" data-tab="kb" title="skill 知识库：13 个模块 35 万字，可浏览、检索、按模块+关键词抽取原文指令块。">知识库</button>
+    <button class="tab" data-tab="models" title="配置模型或网页版人工通道。">模型</button>
+    <button class="tab" data-tab="guide" title="平台的设计逻辑与使用路径。">说明</button>
+  </nav>
+  <button id="clear-cache" title="清理知识库解析缓存 + 页面缓存并强制刷新；改了 skill / 代码后看不到更新时点这里">🔄 清理缓存</button>
+  <span class="health" id="health">检查中…</span>
+</header>
+
+<main>
+  <!-- ==================== 写作流程 ==================== -->
+  <section id="tab-flow" class="panel active">
+    <div class="card">
+      <h2>书架 <span class="badge" id="flow-hint">—</span></h2>
+      <div class="row">
+        <select id="book-sel" style="min-width:220px" title="选择要写的书"></select>
+        <button id="book-del" title="删除当前书（连同它的产出、章节、检查记录）">删除本书</button>
+        <span class="hint">｜新建：</span>
+        <input id="book-name" placeholder="书名" style="width:150px" />
+        <select id="book-aud" title="受众决定章节步骤自动带上哪条赛道指令">
+          <option value="male">男频</option><option value="female">女频</option><option value="none">不限</option>
+        </select>
+        <select id="book-flow-sel" title="长篇开新书 / 完本中篇 / 短篇工业化"></select>
+        <input id="book-genre" placeholder="题材（如：都市脑洞 / 规则怪谈）" style="width:210px" />
+        <input id="book-brief" placeholder="一句话设定" style="min-width:280px;flex:1" />
+        <button id="book-create" class="primary">创建</button>
+      </div>
+      <div class="hint" id="book-meta"></div>
+    </div>
+
+    <div class="card">
+      <h2>🧰 卡文急救工具箱 <span class="badge" id="tool-badge"></span></h2>
+      <p class="hint">写不下去 / 人设崩了的时候用（对应手册的工作流 C）。多数卡文不是句子问题，是大纲与动机问题——
+      先自检定位，再对症状选法。这里只调模型给你方案，<b>不会自动改你的正文</b>。</p>
+      <div class="row">
+        <button data-tool="diagnose">① 卡文自检定位</button>
+        <button data-tool="ooc_fix">② OOC 即时纠错</button>
+        <button data-tool="deai_fix">③ 去 AI 化补强</button>
+        <span class="hint" id="tool-msg">点任一项 → 在下方步骤面板里看手册原文并生成</span>
+      </div>
+    </div>
+
+    <div class="split">
+      <aside class="card side">
+        <h2>流程步骤 <span class="badge" id="steps-count"></span></h2>
+        <div id="steps"></div>
+        <p class="hint" id="steps-flow"></p>
+      </aside>
+
+      <div class="split-main">
+        <div class="card">
+          <h2 id="step-title">请先选一本书</h2>
+          <div class="hint" id="step-goal"></div>
+          <div class="hint" id="step-mods"></div>
+
+          <div id="step-blocks"></div>
+
+          <div class="row" style="margin-top:10px">
+            <span class="hint">本步默认模型：</span>
+            <select id="step-model" style="min-width:240px" title="绑定后，本步骤的生成（含「章节」页的「生成本章正文 / 去 AI 味改写」）都优先用它；不绑则用全局默认。推荐先到「模型」页一键创建推荐配置。"></select>
+            <span class="hint" id="step-model-msg"></span>
+          </div>
+          <div class="row">
+            <button id="gen-run" class="primary" title="按「手册原文指令 + 本书资料 + 本步默认模型」生成；结果会自动写入下面的产出，可在生成记录里回看。">🤖 交给模型执行本步</button>
+            <button id="auto-proposal" title="开书一键立项：选题 → 合规 → 书名简介 → 人设 → 大纲 → 黄金三章，已有产出的步骤自动跳过">🚀 一键立项（开书）</button>
+            <span class="hint" id="auto-proposal-msg"></span>
+          </div>
+          <details class="adv">
+            <summary>高级（补充要求 / 临时模型 / 查看提示词）</summary>
+            <div class="row">
+              <input id="gen-extra" placeholder="补充要求（可空，如：偏悬疑、主角是程序员）" style="min-width:260px;flex:1" />
+              <select id="gen-model" title="本次生成临时覆盖本步默认模型（默认按上方的绑定）"></select>
+              <button id="gen-prompt" title="不调模型，只看这次会发出去什么（含引用了哪些手册原文）">查看完整提示词</button>
+            </div>
+          </details>
+          <div id="gen-area" class="hint"></div>
+          <div class="row" style="margin-top:6px;border-top:1px dashed var(--line);padding-top:8px">
+            <span class="hint">一键续写：</span>
+            <input id="auto-chapters-n" type="number" min="1" max="20" value="3" style="width:70px" />
+            <span class="hint">章</span>
+            <button id="auto-chapters-run" title="从当前最大章号往后，连续跑 N 章的「起草 → 去 AI 味 → 摘要+伏笔 → 违禁词扫描」">🚀 一键续写</button>
+            <span class="hint" id="auto-chapters-msg"></span>
+          </div>
+
+          <h2 style="margin-top:14px">本步产出 <span class="badge" id="art-state"></span></h2>
+          <textarea id="art-text" rows="12" placeholder="产出会在这里（生成后自动写入，也可手工写/粘贴修改）"></textarea>
+          <div class="row">
+            <button id="art-save" class="primary">保存产出</button>
+            <label class="hint"><input id="art-lock" type="checkbox" /> 锁定（锁定后 AI 生成不会覆盖它）</label>
+          </div>
+
+          <div id="step-checks"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 短故事 ==================== -->
+  <section id="tab-short" class="panel">
+    <!-- 1. 一键成篇 -->
+    <div class="card">
+      <h2>🍅 番茄短故事 <span class="badge" id="short-badge">—</span></h2>
+      <div class="row" style="margin-top:10px">
+        <select id="short-book" style="min-width:260px" title="选择已写的短故事"></select>
+        <span class="hint">或新建：</span>
+        <select id="short-main" title="主分类（必选）"></select>
+        <input id="short-name" placeholder="书名（可空，自动起）" style="width:170px" />
+        <button id="short-quick-create" class="primary" style="font-size:15px;padding:10px 22px" title="从头到尾自动跑完：构思 → 起书名 → 设定表 → 大纲 → 正文 → 改写 → 扫描 → 导出">🚀 一键成篇</button>
+      </div>
+      <div class="hint" id="short-cur-cat"></div>
+      <div class="hint" id="short-msg"></div>
+      <details class="adv">
+        <summary>更多设置（标签 / 手动建书 / 已写过的补救 / 模型成本）</summary>
+        <div class="hint">作品标签（番茄短故事分类标签，可多选；与主分类合计最多 8 个。按住 Ctrl 点选）</div>
+        <div class="row">
+          <select id="short-tags" multiple size="5" style="min-width:420px"></select>
+          <span class="hint" id="short-tags-msg"></span>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="short-create" title="只建一本空书，不生成内容">只建空书</button>
+          <button id="short-skeleton" title="按黄金五段建 5 章骨架">建立 5 章骨架</button>
+          <button id="short-gen-all" title="逐章跑起草→改写→摘要→扫描">一键写完所有章</button>
+          <button id="short-auto-book" title="对已选中的书重跑：成稿→改写→扫描→导出">一键成书（已有书）</button>
+        </div>
+        <div class="row">
+          <button id="short-preset-unified" title="全流程统一使用 DeepSeek V4.1 Flash 1017">应用统一模型</button>
+          <button id="short-full-draft" title="一次写出五章全文（会覆盖正文）">一次成稿</button>
+          <button id="short-cost" title="按步骤统计 token 与费用">看成本</button>
+          <span class="hint" id="short-model-msg"></span>
+        </div>
+        <div id="short-cost-out"></div>
+        <div class="hint" id="short-cost-msg"></div>
+      </details>
+    </div>
+
+    <!-- 2. 进度（一键成篇时才出现） -->
+    <div class="card" id="short-progress-card" hidden>
+      <h2>生成进度 <span class="badge" id="short-progress-badge">—</span></h2>
+      <div class="pbar" id="short-progress-wrap"><div id="short-progress-bar"></div></div>
+      <div class="hint" id="short-progress-msg"></div>
+      <div id="short-progress-steps" class="hint"></div>
+    </div>
+
+    <!-- 3. 章节 -->
+    <div class="card">
+      <h2>章节 <span class="badge" id="short-ch-badge"></span></h2>
+      <div class="hint" id="short-ch-msg"></div>
+      <div id="short-chapters"></div>
+      <div id="short-task" class="hint"></div>
+    </div>
+
+    <!-- 4. 导出 -->
+    <div class="card">
+      <h2>导出 <span class="badge" id="short-words"></span></h2>
+      <div class="row">
+        <button id="short-export" class="primary" title="导出：正文-粘贴用.txt / 发布信息卡.txt / .docx">导出投稿包</button>
+        <button id="short-preview">预览全文</button>
+        <button id="short-copy">复制正文</button>
+        <span class="hint" id="short-pv-msg"></span>
+      </div>
+      <div id="short-checks"></div>
+      <textarea id="short-text" rows="12" placeholder="点「预览全文」后，这里显示合并后的正文（按「第N章 标题」划分）"></textarea>
+    </div>
+  </section>
+
+  <!-- ==================== 章节 ==================== -->
+  <section id="tab-chapters" class="panel">
+    <div class="card">
+      <h2>章节 <span class="badge" id="ch-meta">—</span></h2>
+      <div class="row">
+        <select id="ch-book" style="min-width:220px"></select>
+        <input id="ch-title" placeholder="章节标题（可空）" style="width:170px" />
+        <input id="ch-brief" placeholder="本章要点（给模型的指令）" style="min-width:300px;flex:1" />
+        <button id="ch-create" class="primary">＋ 新建章节</button>
+        <button id="ch-export" title="导出成 txt / md，可合并或分章，写到本机目录">导出成稿…</button>
+      </div>
+    </div>
+    <div class="split">
+      <aside class="card side">
+        <h2>章节列表</h2>
+        <div id="ch-list"></div>
+      </aside>
+      <div class="split-main">
+        <div class="card">
+          <h2 id="ch-head">选择或新建一章</h2>
+          <div class="row">
+            <button id="ch-finish" class="primary" title="一键连跑：起草正文 → 去 AI 味 → 生成章节摘要 → 更新伏笔台账 → 违禁词扫描（后台执行，可看进度）。">⚡ 一键写完本章</button>
+            <button id="ch-gen" title="只跑起草（按本书流程的章节步骤，会注入人设档案/大纲/赛道指令/前情摘要/伏笔台账）">🤖 只起草正文</button>
+            <button id="ch-deai" title="只跑去 AI 味改写（保剧情、改表达）">只做去 AI 味</button>
+            <button id="ch-check">违禁词扫描</button>
+            <button id="ch-save">保存</button>
+            <button id="ch-del" title="删除本章（不影响其它章）">删除本章</button>
+            <span class="hint" id="ch-words"></span>
+          </div>
+          <div id="ch-gen-area" class="hint"></div>
+          <div id="ch-task" class="hint"></div>
+          <textarea id="ch-text" rows="18" placeholder="正文（不写标题行，导出时会自动加「第N章《标题》」）"></textarea>
+          <details class="g" id="ch-summary-box">
+            <summary>本章摘要（跨章连贯靠它：后续章节会读到这里的「人物状态变化 / 遗留悬念」）
+              <span class="badge" id="ch-summary-badge"></span></summary>
+            <div class="row"><button id="ch-summary-run">重算摘要</button>
+              <span class="hint">改了正文之后建议重算一次，否则下一章读到的还是旧摘要。</span></div>
+            <textarea id="ch-summary" rows="8" placeholder="（还没有摘要。生成正文后会自动产生，也可点「重算摘要」）"></textarea>
+          </details>
+          <div class="hint" id="ch-fore" style="margin-top:8px"></div>
+          <div class="row" style="margin-top:6px">
+            <button id="ch-drift" title="比对大纲与最近 10 章摘要，找出是否写飞（约 10–20 秒）">📐 大纲偏离检查</button>
+            <span class="hint" id="ch-drift-msg"></span>
+          </div>
+          <div id="ch-drift-out" class="hint"></div>
+        </div>
+
+        <div class="card">
+          <h2>生成记录 <span class="badge" id="ch-gens-badge"></span></h2>
+          <p class="hint">每次模型调用的提示词、输出、耗时、错误都留在这里：出问题时能看到"到底给模型发了什么"；<b>「按原提示词重试」</b>可以直接排除"是不是模型的锅"。</p>
+          <div id="ch-gens"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 合规检查 ==================== -->
+  <section id="tab-checks" class="panel">
+    <div class="card">
+      <div class="row">
+        <span class="hint">选择书：</span>
+        <select id="ck-book" style="min-width:220px"></select>
+      </div>
+      <p class="hint">三条检查的依据全部来自 skill：黑名单与违禁词条款逐条取自 01 / 03 模块；
+      关键词扫描用派生的检测词表（原始条款里是打码写法，无法直接扫描，原文仍在知识库）。</p>
+    </div>
+    <div class="card">
+      <h2>① 题材黑名单预检 <span class="badge" id="ck-bl-badge"></span></h2>
+      <p class="hint">开书前先过一遍：命中高危词会被标出，同时逐条列出手册里的红线条款供人工确认。</p>
+      <div class="row"><button id="ck-blacklist" class="primary">跑黑名单预检</button></div>
+      <pre id="ck-bl-out">（未运行）</pre>
+      <div id="ck-bl-groups"></div>
+    </div>
+    <div class="card">
+      <h2>② 违禁词与 AI 痕迹扫描 <span class="badge" id="ck-vb-badge"></span></h2>
+      <div class="row">
+        <select id="ck-chapter" title="选一章扫它的正文；不选则扫全书设定与产出"><option value="">（全书设定）</option></select>
+        <button id="ck-violations" class="primary">扫描</button>
+        <button id="ck-all" title="逐章扫描全书并汇总：哪几章有硬伤一眼看到">📚 全书批量扫描</button>
+      </div>
+      <pre id="ck-vb-out">（未运行）</pre>
+    </div>
+    <div class="card">
+      <h2>③ 投稿前自查清单 <span class="badge" id="ck-ps-badge"></span></h2>
+      <p class="hint">清单原文逐项解析自手册 01 模块；能自动核对的几项会给出证据（字数、AI 痕迹统计、开篇与章尾钩子检查）。</p>
+      <div class="row"><button id="ck-presubmit" class="primary">生成清单</button><span class="hint" id="ck-ps-msg"></span></div>
+      <div id="ck-ps-items"></div>
+      <pre id="ck-ps-out" style="display:none"></pre>
+    </div>
+  </section>
+
+  <!-- ==================== 知识库 ==================== -->
+  <section id="tab-kb" class="panel">
+    <div class="card">
+      <h2>意图路由 <span class="badge" id="kb-badge"></span></h2>
+      <p class="hint">这就是 skill 的 SKILL.md 路由表：想知道"这件事该看哪个模块"，照这张表找。</p>
+      <div id="kb-routing"></div>
+    </div>
+    <div class="split">
+      <aside class="card side">
+        <h2>模块（13）</h2>
+        <div id="kb-modules"></div>
+      </aside>
+      <div class="split-main">
+        <div class="card">
+          <h2 id="kb-title">阅读</h2>
+          <div class="row">
+            <input id="kb-q" placeholder="检索关键词（多个词用空格分隔，需同时命中）" style="flex:1;min-width:260px" />
+            <button id="kb-search">检索</button>
+            <button id="kb-whole" title="把整篇模块内容都塞进下面的框（03 模块有 29 万字，会比较慢；建议用分节浏览）">读整篇</button>
+            <span class="hint" id="kb-msg"></span>
+          </div>
+          <div id="kb-sections"></div>
+          <pre id="kb-out">（点左侧模块 → 这里列出各节，点节名读单节；也可直接检索）</pre>
+        </div>
+        <div class="card">
+          <h2>🔧 指令块抽取器</h2>
+          <p class="hint">选模块 + 关键词，抽出 skill 的**原文指令**（不改写）。平台各步骤的提示词就是这么来的；
+          你也可以抽出来直接复制给任意 AI 用。</p>
+          <div class="row">
+            <input id="kb-mods" placeholder="模块，如 02d,05" style="width:170px" />
+            <input id="kb-kws" placeholder="关键词，如 去AI味,替换特征词" style="min-width:260px;flex:1" />
+            <button id="kb-blocks" class="primary">抽取</button>
+          </div>
+          <div id="kb-blocks-out"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 模型 ==================== -->
+  <section id="tab-models" class="panel">
+    <div class="split">
+      <div class="split-main">
+        <div class="card">
+          <h2>已接入的模型 / 通道</h2>
+          <table class="grid" id="md-table"></table>
+        </div>
+        <div class="card">
+          <h2>💰 成本总览 <span class="badge" id="cost-badge">—</span></h2>
+          <p class="hint">按书统计模型调用次数、token 与费用；缓存命中越多，实际费用越低。数据来自生成记录，新记录才计 token。</p>
+          <table class="grid" id="cost-table"></table>
+        </div>
+      </div>
+      <aside class="card side" style="flex:0 0 340px">
+        <h2>新增 / 编辑</h2>
+        <div class="row"><input id="md-name" placeholder="名称（如 DeepSeek Flash）" style="flex:1" /></div>
+        <div class="row">
+          <select id="md-channel"><option value="api">API 接口</option><option value="web">网页版（人工通道）</option></select>
+          <input id="md-purpose" placeholder="用途说明" style="flex:1" />
+        </div>
+        <div id="md-api">
+          <div class="row"><input id="md-base" placeholder="接口地址 https://api.xxx.com/v1" style="flex:1" /></div>
+          <div class="row"><input id="md-model" placeholder="模型名 deepseek-flash" style="flex:1" />
+            <button id="md-upstream" title="用上面的地址与密钥拉取该网关的可用模型列表">拉取列表</button></div>
+          <div class="row"><input id="md-key" placeholder="API Key（只存本机数据库）" style="flex:1" /></div>
+          <div class="row">
+            <input id="md-temp" type="number" step="0.1" value="0.8" style="width:80px" title="温度" />
+            <input id="md-tokens" type="number" value="4096" style="width:100px" title="最大 token" />
+            <input id="md-timeout" type="number" value="600" style="width:100px" title="超时（秒）" />
+          </div>
+          <div class="row hint">
+            <label><input id="md-thinkoff" type="checkbox" checked /> 关思考（推理型模型必开）</label>
+            <label><input id="md-stream" type="checkbox" checked /> 流式</label>
+            <label><input id="md-noproxy" type="checkbox" checked /> 跳过代理</label>
+          </div>
+        </div>
+        <div id="md-web" class="row hint" style="display:none">
+          <input id="md-weburl" placeholder="网页入口 https://chat.xxx.com" style="flex:1" />
+        </div>
+        <div class="row">
+          <label class="hint"><input id="md-default" type="checkbox" /> 设为默认</label>
+          <label class="hint"><input id="md-enabled" type="checkbox" checked /> 启用</label>
+          <button id="md-save" class="primary">保存</button>
+          <button id="md-reset">清空表单</button>
+        </div>
+        <div class="row">
+          <button id="md-presets" title="按手册 02a 的模型适配建议，用上面的接口地址与密钥一键建好 4 条「省钱档」配置：起草=DeepSeek Flash、改写=GLM-5.3 Flash、大纲=DeepSeek V4 Pro、扫描=Kimi K2.6（模型名取自网关真实列表，不猜）。">⚡ 省钱档配置</button>
+          <button id="md-presets-q" title="一键建好 4 条「质量档」配置：起草=豆包 Seed 2.1 Pro（手册称番茄文风天花板）、改写=GLM-5.3 Flash、大纲=DeepSeek V4 Pro、扫描=Kimi K2.6。一章约 ¥0.1–0.15。">⚡ 质量档配置</button>
+        </div>
+        <div class="hint" id="md-presets-msg"></div>
+        <h2 style="margin-top:12px">绑定总览</h2>
+        <div id="md-bindings" class="hint">（每个模型绑在哪些书的哪些步骤）</div>
+        <p class="hint">密钥保存在本机 data/app.db 里，页面不回显；也可用网页版人工通道（无 API 时：平台给你提示词，你粘到网页 AI 执行，再把结果贴回来）。</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ==================== 说明 ==================== -->
+  <section id="tab-guide" class="panel">
+    <div class="card">
+      <h2>这个平台是什么</h2>
+      <p class="hint">它不是"又一堆节点"，而是 <b>ai-xiaoshuo-skill 的执行台</b>：手册的工作流就是平台的流程，
+      手册的原文指令就是平台的提示词，手册的清单就是平台的检查项。</p>
+      <div class="kv">
+        <div>知识库</div><div>13 个模块 / 约 35 万字内置在平台里（app/knowledge/data），可浏览、检索、抽指令块</div>
+        <div>流程</div><div>长篇开新书 9 步 / 完本中篇 10 步 / 短篇工业化 8 步 / 番茄短故事 8 步（严格照手册），另有卡文急救工具箱</div>
+        <div>短故事</div><div>按番茄发布页规格：单篇完结、正文 ≥6000 字、作品分类（主分类必选 / 最多 8 个）、试读比例、是否使用 AI；一键建 5 章骨架 → 逐章生成 → 合并预览 → 导出投稿包</div>
+        <div>指令</div><div>每步按「模块 + 关键词」自动抽取手册原文（不改写），连同一句话出处一起注入提示词</div>
+        <div>检查</div><div>黑名单预检（03 模块）、违禁词与 AI 痕迹（01/02d 模块）、投稿前自查清单（01 模块）</div>
+        <div>模型</div><div>任意 OpenAI 兼容接口（含流式/关思考/跳过代理）；无 API 时用网页版人工通道</div>
+      </div>
+      <h2 style="margin-top:14px">推荐使用路径</h2>
+      <ol class="hint" style="line-height:2">
+        <li><b>模型</b>：加一个 API 模型并点「测试」；或加一个网页版通道。</li>
+        <li><b>写作流程</b>：新建书 → 从第 1 步「选题定方向」开始，点「🤖 交给模型执行本步」；产出不满意可以直接改，改完保存。</li>
+        <li>第 2 步「合规预检」会跑黑名单与违禁词；人设定稿后建议<b>锁定</b>，之后的生成就不会覆盖它。</li>
+        <li><b>章节</b>：到第 7 步时逐章生成；生成完用「去 AI 味改写」，然后「导出成稿」。</li>
+        <li><b>合规检查</b>：投稿前跑三条检查；<b>知识库</b>随时查手册原文。</li>
+        <li><b>写短故事</b>：进「短故事」页签 → 填名称+主分类（可再加次分类）创建 → 「建立 5 章骨架」→ 逐章「⚡ 一键写完本章」或「一键写完所有章」→ 「预览全文」看字数与发布项 → 「导出投稿包」（正文-粘贴用.txt / 发布信息卡.txt / .docx）。</li>
+      </ol>
+      <p class="hint">⚠️ 手册铁律（平台不再重复提醒）：<b>纯 AI 稿不能直接投稿</b>，必须人工打磨校验；
+      违禁词与违规情节是最高优先级；范文与案例只做参考，禁止照抄投稿；同人内容仅供个人练习。</p>
+    </div>
+  </section>
+</main>
+
+<div class="mask hidden" id="mask">
+  <div class="modal">
+    <div class="modal-msg" id="modal-msg"></div>
+    <input id="modal-input" style="width:100%;display:none" />
+    <div class="modal-ops" style="margin-top:12px">
+      <button id="modal-cancel">取消</button>
+      <button id="modal-ok" class="primary">确定</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js?v=26"></script>
+</body>
+</html>
