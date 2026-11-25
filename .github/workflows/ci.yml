@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 语法检查
+        run: python -m compileall -q app tools
+
+      - name: 配置 / 知识库 / 流程定义自检
+        run: |
+          python - <<'PY'
+          from app.config import MODULE_ROUTING
+          from app.flows.definitions import FLOWS, BOOK_FLOWS
+          from app.knowledge import library
+
+          mods = library.module_files()
+          print("知识库模块:", len(mods))
+          print("意图路由:", len(MODULE_ROUTING))
+          print("流程:", list(FLOWS))
+          print("开书流程:", BOOK_FLOWS)
+
+          assert len(mods) >= 14, "知识库模块缺失"
+          assert "fanqie_short" in FLOWS, "番茄短故事流程缺失"
+          assert set(BOOK_FLOWS).issubset(set(FLOWS)), "开书流程与定义不一致"
+          PY
+
+      # 完整端到端自测（假模型，不联网）请在本地跑：
+      #   python tools/dev/smoke_test.py --inproc

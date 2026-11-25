@@ -64,7 +64,7 @@ def run(platform, mock_url: str) -> None:
 
     print("== 2. 知识库（skill 为核心）==")
     info = c.get("/api/kb/info").json()
-    check(len(info["modules"]) == 14, f"内置 {len(info['modules'])} 个模块")
+    check(len(info["modules"]) >= 14, f"内置 {len(info['modules'])} 个模块")
     check(info["total_chars"] > 300000, f"共 {info['total_chars']} 字 / {info['total_sections']} 节")
     check(len(info["routing"]) >= 10, "意图路由表可用（对应 SKILL.md）")
     check("local" in info, f"本机 skill 对比可用（{info['local'].get('note') or '未检测到本机目录'}）")

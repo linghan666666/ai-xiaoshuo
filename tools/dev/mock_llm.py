@@ -42,6 +42,8 @@ def _kind(prompt: str, model: str) -> str:
     """
     if "short" in model:            # 专供测试断言用：故意返回远短于原文的"改写稿"
         return "short"
+    if "任务二：更新埋伏笔账本" in prompt:   # 摘要+伏笔的合并调用
+        return "summary"
     if "本次要写的内容" in prompt:
         return "chapter"
     return "artifact"
@@ -77,6 +79,19 @@ async def chat(payload: dict):
         _ = no
     elif kind == "short":
         content = "林默进了便利店，看见一行灰字。他愣了一下，买了瓶水就走了。"   # 远短于原文 → 平台应拦下覆盖
+    elif kind == "summary":
+        # 必须按 COMBINED_SUMMARY_PROMPT 的固定标记返回，否则平台判定"没按格式"→ 伏笔不更新
+        content = (
+            "【章节摘要】\n"
+            "【关键情节】老陈带着一张发黄纸条去找柜台后的人，对方点出他欠的是三年前转身走掉的四分钟。\n"
+            "【出场人物】老陈（欠债者）、柜台后的人（债主/放贷方）。\n"
+            "【人物状态变化】老陈从试探退让转为承认欠债并提出条件。\n"
+            "【遗留悬念】三年前那四分钟里到底发生了什么。\n"
+            "【衔接提示】录音笔按下播放键的瞬间。\n\n"
+            "【伏笔台账】\n"
+            "- （第1章）发黄的纸条：谁写的、写的什么内容\n"
+            "- （第1章）三年前走掉的四分钟：具体发生了什么\n"
+        )
     else:
         task = re.search(r"#\s*任务：(.+)", user)
         content = f"（任务：{task.group(1).strip() if task else '步骤产出'}）\n" + _ARTIFACT

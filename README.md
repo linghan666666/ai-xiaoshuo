@@ -196,3 +196,52 @@ _设计与映射细节见 `docs/DESIGN.md`。_
 
 代码以 **MIT** 协议开源，见 [LICENSE](LICENSE)。
 知识库内容（`app/knowledge/data/`）不随 MIT 授权，仅限个人学习使用。
+
+
+---
+
+## 十三、发布到 GitHub（第一次推上去）
+
+仓库已经初始化好（`git init` + 首次提交 + `.gitignore`），本地只差一个远程地址。
+
+**1. 在 GitHub 建仓库**：网页 → New repository → 名字随意（如 `ai-xiaoshuo`）→
+**不要**勾 "Add a README / .gitignore / license"（本地已有）。
+
+**2. 关联并推送**（把 `<你的用户名>` 换掉）：
+
+```bash
+cd ai-xiaoshuo
+git remote add origin https://github.com/<你的用户名>/ai-xiaoshuo.git
+git branch -M main
+git push -u origin main
+```
+
+首次推送会要求认证，两种方式任选：
+
+- **HTTPS + Token（最简单）**：GitHub → Settings → Developer settings →
+  Personal access tokens → Tokens (classic) → 勾 `repo` → 生成 → 推送时密码处粘贴 token；
+- **SSH**：`ssh-keygen -t ed25519 -C "you@example.com"` → 把 `~/.ssh/id_ed25519.pub`
+  贴到 GitHub → Settings → SSH and GPG keys → 再把上面 remote 换成
+  `git@github.com:<用户名>/ai-xiaoshuo.git`。
+
+**3. 推之前自查**（重要，别把密钥和小说传上去）：
+
+```bash
+git status --short          # 应该只有你刚改的文件
+git ls-files | grep -E "^data/|app\.db|node_modules"   # 应该没有输出
+```
+
+已配置的忽略规则：`/data/`（数据库/导出/备份）、`.env`、`.workbuddy/`（AI 助手工作记录）、
+`node_modules/`、`__pycache__/`。
+
+> ⚠️ `/data/` 开头的斜杠不能省：写成 `data/` 会连带忽略 `app/knowledge/data/`（内置知识库）。
+
+## 十四、已知限制
+
+- **流程步骤结构是写死的**（`app/flows/definitions.py`）：知识库更新后，指令原文与检查条款会自动跟着变，
+  但「新增一个工作流」需要在那里加定义，平台不会自动生成。
+- **一次成稿可能后段缩水**：一次让模型写完五章时，后面章节容易偏短。
+  平台为此做了两件事：成稿校验不通过自动降级为逐章生成；改写时字数骤降/暴涨会被拦下不覆盖正文。
+- **AI 生图没有内置**：封面需外部工具（即梦/Canva 等）生成；平台只负责正文与投稿包。
+- **完整端到端自测**（`tools/dev/smoke_test.py --inproc`）在本地跑最稳；
+  CI 只做语法与结构自检，因为其中的慢速/改写保护用例依赖「假模型按模型名分支返回」。
