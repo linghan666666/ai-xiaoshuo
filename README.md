@@ -111,7 +111,7 @@ app/
 
 static/                  前端（原生 JS，无构建步骤）
 tools/dev/               假模型 + 端到端自测 + 并发/后台探针
-docs/                    设计说明与截图
+docs/                    设计说明（DESIGN.md）与界面截图
 ```
 
 ---

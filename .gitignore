@@ -38,3 +38,14 @@ desktop.ini
 _*.mjs
 _*.py
 %SystemDrive%/
+
+
+# ---------- 个人文档（本地保留，不公开）----------
+docs/完本中篇-*.md
+docs/新书方案-*.md
+docs/新任务开工手册.md
+docs/降本增效方案.md
+docs/黄金三章-*.md
+docs/REVIEW-*.html
+docs/FIXES-*.md
+tools/publish.ps1
